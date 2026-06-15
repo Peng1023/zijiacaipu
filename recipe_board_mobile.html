@@ -1,0 +1,281 @@
+
+<h2 class="sr-only">私人菜谱看板 — 选菜、随机、记录今天吃了什么</h2>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:var(--font-sans)}
+.wrap{max-width:390px;margin:0 auto;padding:0 0 80px}
+.header{padding:20px 16px 0}
+.header h1{font-size:20px;font-weight:500;color:var(--color-text-primary)}
+.header p{font-size:13px;color:var(--color-text-secondary);margin-top:2px}
+.tabs{display:flex;border-bottom:0.5px solid var(--color-border-tertiary);margin:16px 0 0;padding:0 16px}
+.tab{flex:1;padding:10px 0;font-size:14px;text-align:center;cursor:pointer;border:none;background:none;color:var(--color-text-secondary);border-bottom:2px solid transparent;margin-bottom:-0.5px}
+.tab.on{color:var(--color-text-primary);border-bottom-color:var(--color-text-primary);font-weight:500}
+.pane{display:none;padding:16px}.pane.on{display:block}
+
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;margin-bottom:14px}
+.chips::-webkit-scrollbar{display:none}
+.chip{padding:6px 14px;border-radius:20px;font-size:13px;cursor:pointer;border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-secondary);white-space:nowrap;flex-shrink:0}
+.chip.on{background:var(--color-text-primary);color:var(--color-background-primary);border-color:var(--color-text-primary)}
+
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:14px;cursor:pointer;position:relative}
+.card:active{background:var(--color-background-secondary)}
+.card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.card-name{font-size:14px;font-weight:500;color:var(--color-text-primary);line-height:1.3}
+.cat-badge{font-size:11px;padding:2px 7px;border-radius:10px;flex-shrink:0;margin-left:6px}
+.cat-荤菜{background:#FFF3E0;color:#854F0B}
+.cat-素菜{background:#EAF3DE;color:#3B6D11}
+.cat-汤{background:#E0F7FA;color:#0F6E56}
+.cat-主食{background:#F3E5F5;color:#6A1B9A}
+.cat-家常菜{background:#E3F2FD;color:#185FA5}
+.cat-其他{background:#F1EFE8;color:#5F5E5A}
+.card-ing{font-size:12px;color:var(--color-text-secondary);line-height:1.5;margin-bottom:10px}
+.card-footer{display:flex;justify-content:space-between;align-items:center}
+.count{font-size:12px;color:var(--color-text-secondary)}
+.eaten-btn{font-size:12px;padding:4px 10px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:none;color:var(--color-text-secondary);cursor:pointer}
+.eaten-btn:active{background:var(--color-background-secondary)}
+.eaten-badge{position:absolute;top:10px;right:10px;width:8px;height:8px;border-radius:50%;background:#3B6D11}
+
+.spin-wrap{text-align:center;padding:24px 0 16px}
+.spin-hint{font-size:14px;color:var(--color-text-secondary);margin-bottom:20px}
+.cat-btns{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:24px}
+.spin-btn{padding:14px 32px;font-size:16px;border:0.5px solid var(--color-border-primary);border-radius:var(--border-radius-lg);background:var(--color-background-primary);color:var(--color-text-primary);cursor:pointer;font-weight:500;width:100%}
+.spin-btn:active{background:var(--color-background-secondary)}
+.result-card{background:var(--color-background-secondary);border-radius:var(--border-radius-lg);padding:24px 20px;margin-top:20px;text-align:center}
+.result-name{font-size:22px;font-weight:500;color:var(--color-text-primary);margin-bottom:6px}
+.result-meta{font-size:13px;color:var(--color-text-secondary);margin-bottom:12px}
+.result-ing{font-size:13px;color:var(--color-text-secondary);line-height:1.8;margin-bottom:20px}
+.result-actions{display:flex;gap:10px}
+.btn-retry{flex:1;padding:11px;border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);background:none;color:var(--color-text-secondary);font-size:14px;cursor:pointer}
+.btn-eat{flex:2;padding:11px;border:0.5px solid var(--color-border-primary);border-radius:var(--border-radius-md);background:var(--color-background-primary);color:var(--color-text-primary);font-size:14px;font-weight:500;cursor:pointer}
+.btn-eat:active,.btn-retry:active{background:var(--color-background-secondary)}
+
+.log-empty{text-align:center;padding:40px 0;font-size:14px;color:var(--color-text-secondary)}
+.log-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:0.5px solid var(--color-border-tertiary)}
+.log-item:last-child{border-bottom:none}
+.log-date{font-size:12px;color:var(--color-text-secondary);width:56px;flex-shrink:0}
+.log-name{font-size:14px;font-weight:500;color:var(--color-text-primary);flex:1}
+.log-cat{font-size:12px;color:var(--color-text-secondary)}
+.log-del{background:none;border:none;color:var(--color-text-secondary);cursor:pointer;font-size:16px;padding:4px}
+
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--color-text-primary);color:var(--color-background-primary);padding:10px 20px;border-radius:var(--border-radius-lg);font-size:14px;opacity:0;transition:opacity 0.2s;pointer-events:none;white-space:nowrap;z-index:99}
+.toast.show{opacity:1}
+</style>
+
+<div class="wrap">
+  <div class="header">
+    <h1>我的菜谱</h1>
+    <p id="hdr-sub">28 道菜</p>
+  </div>
+  <div class="tabs">
+    <button class="tab on" onclick="sw(0)">全部菜</button>
+    <button class="tab" onclick="sw(1)">今天吃什么</button>
+    <button class="tab" onclick="sw(2)">饮食记录</button>
+  </div>
+
+  <!-- 全部菜 -->
+  <div class="pane on" id="p0">
+    <div class="chips" id="chips0"></div>
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <!-- 随机 -->
+  <div class="pane" id="p1">
+    <div class="spin-wrap">
+      <p class="spin-hint">按类别随机，或直接全部随机</p>
+      <div class="cat-btns" id="cat-btns"></div>
+      <button class="spin-btn" id="spin-main" onclick="doSpin()">
+        <i class="ti ti-dice-5" aria-hidden="true"></i> 随机选一道
+      </button>
+      <div id="spin-result" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- 饮食记录 -->
+  <div class="pane" id="p2">
+    <div id="log-body"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const RECIPES = [
+  {id:1,n:"青椒土豆丝",c:"素菜",ing:["土豆","青椒","蒜","盐","醋"]},
+  {id:2,n:"酸辣土豆丝",c:"素菜",ing:["土豆","干辣椒","蒜","醋","花椒"]},
+  {id:3,n:"地三鲜",c:"素菜",ing:["土豆","茄子","青椒","蒜","生抽"]},
+  {id:4,n:"土豆炒茄子",c:"素菜",ing:["土豆","茄子","蒜","生抽","盐"]},
+  {id:5,n:"干锅土豆片",c:"家常菜",ing:["土豆","培根","青椒","豆瓣酱","蒜"]},
+  {id:6,n:"炒空心菜",c:"素菜",ing:["空心菜","蒜","盐","蚝油"]},
+  {id:7,n:"白菜炒猪肉",c:"荤菜",ing:["白菜","猪肉","生抽","蒜","盐"]},
+  {id:8,n:"辣椒炒猪肉",c:"荤菜",ing:["猪肉","青红椒","生抽","蒜","盐"]},
+  {id:9,n:"黄焖鸡",c:"荤菜",ing:["鸡腿","土豆","青椒","黄焖酱","姜蒜"]},
+  {id:10,n:"广式喳喳鸡",c:"荤菜",ing:["鸡","葱","姜","生抽","麻油"]},
+  {id:11,n:"广式喳喳排骨",c:"荤菜",ing:["排骨","葱","姜","生抽","麻油"]},
+  {id:12,n:"辣炒排骨",c:"荤菜",ing:["排骨","干辣椒","蒜","豆豉","生抽"]},
+  {id:13,n:"江西炒粉",c:"主食",ing:["米粉","猪肉","豆芽","韭黄","辣椒"]},
+  {id:14,n:"景德镇冷粉",c:"主食",ing:["冷粉","芝麻酱","辣椒油","蒜末","醋"]},
+  {id:15,n:"西红柿炒鸡蛋",c:"家常菜",ing:["西红柿","鸡蛋","盐","糖","葱花"]},
+  {id:16,n:"卤味",c:"荤菜",ing:["卤料包","生抽","老抽","冰糖","葱姜"]},
+  {id:17,n:"小炒黄牛肉",c:"荤菜",ing:["黄牛肉","青红椒","蒜","生抽","淀粉"]},
+  {id:18,n:"麻婆豆腐",c:"家常菜",ing:["豆腐","猪肉末","豆瓣酱","花椒","葱蒜"]},
+  {id:19,n:"清蒸大虾",c:"荤菜",ing:["大虾","姜","葱","蒸鱼豉油","蒜"]},
+  {id:20,n:"烤鱼",c:"荤菜",ing:["鱼","豆瓣酱","葱姜蒜","辣椒","花椒"]},
+  {id:21,n:"火锅麻辣烫",c:"其他",ing:["各类食材","麻辣锅底","芝麻酱"]},
+  {id:22,n:"孜然牛肉卷",c:"主食",ing:["牛肉","饼","孜然","辣椒面","葱"]},
+  {id:23,n:"水煮肉片",c:"荤菜",ing:["猪肉片","豆芽","豆瓣酱","辣椒","花椒"]},
+  {id:24,n:"咖喱牛排",c:"荤菜",ing:["牛排","咖喱块","土豆","胡萝卜","洋葱"]},
+  {id:25,n:"皮蛋肉饼汤",c:"汤",ing:["皮蛋","猪肉末","姜","盐","淀粉"]},
+  {id:26,n:"排骨汤",c:"汤",ing:["排骨","姜","盐","葱","枸杞"]},
+  {id:27,n:"奥尔良鸡腿排",c:"荤菜",ing:["鸡腿","奥尔良腌料","蜂蜜"]},
+  {id:28,n:"清炒生菜",c:"素菜",ing:["生菜","蒜","盐","蚝油"]},
+];
+
+const CATS = ["全部","荤菜","素菜","汤","主食","家常菜","其他"];
+let curCat = "全部";
+let spinCat = null;
+let curTab = 0;
+
+function load(k,def){try{const v=localStorage.getItem(k);return v?JSON.parse(v):def;}catch(e){return def;}}
+function save(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+
+let counts = load('rc_counts',{});
+let log = load('rc_log',[]);
+let todayEaten = load('rc_today',[]);
+
+function todayStr(){return new Date().toLocaleDateString('zh-CN',{month:'2-digit',day:'2-digit'}).replace('/','-');}
+
+function sw(i){
+  document.querySelectorAll('.tab').forEach((t,j)=>t.classList.toggle('on',i===j));
+  document.querySelectorAll('.pane').forEach((p,j)=>p.classList.toggle('on',i===j));
+  curTab=i;
+  if(i===2) renderLog();
+}
+
+function renderChips(){
+  document.getElementById('chips0').innerHTML = CATS.map(c=>
+    `<button class="chip${curCat===c?' on':''}" onclick="setCat('${c}')">${c}</button>`
+  ).join('');
+}
+
+function setCat(c){curCat=c;renderChips();renderGrid();}
+
+function renderGrid(){
+  const list = RECIPES.filter(r=>curCat==='全部'||r.c===curCat);
+  document.getElementById('hdr-sub').textContent = list.length + ' 道菜';
+  document.getElementById('grid').innerHTML = list.map(r=>{
+    const cnt = counts[r.id]||0;
+    const ate = todayEaten.includes(r.id);
+    return `<div class="card" id="card${r.id}">
+      ${ate?'<div class="eaten-badge" title="今天吃了"></div>':''}
+      <div class="card-top">
+        <span class="card-name">${r.n}</span>
+        <span class="cat-badge cat-${r.c}">${r.c}</span>
+      </div>
+      <div class="card-ing">${r.ing.slice(0,4).join('、')}${r.ing.length>4?'…':''}</div>
+      <div class="card-footer">
+        <span class="count"><i class="ti ti-chef-hat" aria-hidden="true" style="font-size:12px;vertical-align:-1px;margin-right:2px"></i>${cnt>0?'做过'+cnt+'次':'还没做过'}</span>
+        <button class="eaten-btn" onclick="markEaten(event,${r.id})">${ate?'已记录':'今天吃了'}</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function markEaten(e,id){
+  e.stopPropagation();
+  const r = RECIPES.find(x=>x.id===id);
+  if(!r) return;
+  if(!todayEaten.includes(id)){
+    todayEaten.push(id);
+    save('rc_today',todayEaten);
+    counts[id]=(counts[id]||0)+1;
+    save('rc_counts',counts);
+    log.unshift({date:todayStr(),name:r.n,cat:r.c,id});
+    save('rc_log',log);
+    toast('已记录：'+r.n);
+  } else {
+    toast('今天已经记过了');
+  }
+  renderGrid();
+}
+
+function renderCatBtns(){
+  document.getElementById('cat-btns').innerHTML = CATS.filter(c=>c!=='全部').map(c=>
+    `<button class="chip${spinCat===c?' on':''}" onclick="setSpinCat('${c}')">${c}</button>`
+  ).join('');
+}
+
+function setSpinCat(c){
+  spinCat = spinCat===c ? null : c;
+  renderCatBtns();
+}
+
+let lastSpin = null;
+function doSpin(){
+  const pool = spinCat ? RECIPES.filter(r=>r.c===spinCat) : RECIPES;
+  if(!pool.length){toast('这类菜还没有哦');return;}
+  let r;
+  if(pool.length>1) do{r=pool[Math.floor(Math.random()*pool.length)];}while(r===lastSpin);
+  else r=pool[0];
+  lastSpin=r;
+  const el=document.getElementById('spin-result');
+  el.style.display='block';
+  el.innerHTML=`<div class="result-card">
+    <div class="result-name">${r.n}</div>
+    <div class="result-meta">${r.c}${counts[r.id]?' · 做过'+(counts[r.id])+'次':' · 还没做过'}</div>
+    <div class="result-ing">${r.ing.join(' · ')}</div>
+    <div class="result-actions">
+      <button class="btn-retry" onclick="doSpin()"><i class="ti ti-refresh" aria-hidden="true"></i> 换一道</button>
+      <button class="btn-eat" onclick="eatFromSpin(${r.id})"><i class="ti ti-check" aria-hidden="true"></i> 就吃这个</button>
+    </div>
+  </div>`;
+}
+
+function eatFromSpin(id){
+  const r=RECIPES.find(x=>x.id===id);
+  if(!r) return;
+  if(!todayEaten.includes(id)){
+    todayEaten.push(id);
+    save('rc_today',todayEaten);
+    counts[id]=(counts[id]||0)+1;
+    save('rc_counts',counts);
+    log.unshift({date:todayStr(),name:r.n,cat:r.c,id});
+    save('rc_log',log);
+  }
+  toast('已记录：'+r.n+' ✓');
+  document.getElementById('spin-result').style.display='none';
+  lastSpin=null;
+}
+
+function renderLog(){
+  const el=document.getElementById('log-body');
+  if(!log.length){el.innerHTML='<div class="log-empty"><i class="ti ti-notes" style="font-size:32px;display:block;margin-bottom:8px;opacity:0.3" aria-hidden="true"></i>还没有记录</div>';return;}
+  el.innerHTML='<div style="margin-bottom:12px;font-size:13px;color:var(--color-text-secondary)">共 '+log.length+' 条记录</div>'+
+    log.map((item,i)=>`<div class="log-item">
+      <span class="log-date">${item.date}</span>
+      <span class="log-name">${item.name}</span>
+      <span class="log-cat">${item.cat}</span>
+      <button class="log-del" onclick="delLog(${i})" aria-label="删除"><i class="ti ti-x" aria-hidden="true"></i></button>
+    </div>`).join('');
+}
+
+function delLog(i){
+  const item=log[i];
+  log.splice(i,1);
+  save('rc_log',log);
+  const idx=todayEaten.indexOf(item.id);
+  if(idx>-1&&item.date===todayStr()){
+    todayEaten.splice(idx,1);
+    save('rc_today',todayEaten);
+  }
+  if(counts[item.id]>0){counts[item.id]--;save('rc_counts',counts);}
+  renderLog();
+}
+
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2000);
+}
+
+renderChips();renderGrid();renderCatBtns();
+</script>
